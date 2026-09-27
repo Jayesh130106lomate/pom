@@ -44,15 +44,15 @@ struct Args {
     rate: f64,
 
     /// Entry relay addresses (comma-separated IP:ports)
-    #[arg(long, default_value = "172.28.0.11:9001,172.28.0.12:9002")]
+    #[arg(long, default_value = "172.28.0.11:9001,172.28.0.12:9002,172.28.0.13:9003,172.28.0.14:9004")]
     entries: String,
 
     /// Mix relay addresses (comma-separated IP:ports)
-    #[arg(long, default_value = "172.28.0.21:9003,172.28.0.22:9004")]
+    #[arg(long, default_value = "172.28.0.21:9005,172.28.0.22:9006,172.28.0.23:9007,172.28.0.24:9008")]
     mixes: String,
 
     /// Exit relay addresses (comma-separated IP:ports)
-    #[arg(long, default_value = "172.28.0.31:9005,172.28.0.32:9006")]
+    #[arg(long, default_value = "172.28.0.31:9009,172.28.0.32:9010,172.28.0.33:9011,172.28.0.34:9012")]
     exits: String,
 }
 
@@ -129,22 +129,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mix_addrs: Vec<SocketAddr> = args.mixes.split(',').map(|s| s.trim().parse().unwrap()).collect();
     let exit_addrs: Vec<SocketAddr> = args.exits.split(',').map(|s| s.trim().parse().unwrap()).collect();
 
-    let entry1 = derive_keys(1, entry_addrs[0]);
-    let entry2 = derive_keys(2, entry_addrs[1]);
-    let mix1 = derive_keys(3, mix_addrs[0]);
-    let mix2 = derive_keys(4, mix_addrs[1]);
-    let exit1 = derive_keys(5, exit_addrs[0]);
-    let exit2 = derive_keys(6, exit_addrs[1]);
+    let mut current_seed = 1u64;
+    let mut entries = Vec::new();
+    for addr in &entry_addrs {
+        entries.push(derive_keys(current_seed, *addr));
+        current_seed += 1;
+    }
+    let mut mixes = Vec::new();
+    for addr in &mix_addrs {
+        mixes.push(derive_keys(current_seed, *addr));
+        current_seed += 1;
+    }
+    let mut exits = Vec::new();
+    for addr in &exit_addrs {
+        exits.push(derive_keys(current_seed, *addr));
+        current_seed += 1;
+    }
 
-    let circuits = vec![
-        CircuitPath { entry: entry1.clone(), mix: mix1.clone(), exit: exit1.clone() },
-        CircuitPath { entry: entry2.clone(), mix: mix2.clone(), exit: exit2.clone() },
-        CircuitPath { entry: entry1.clone(), mix: mix2.clone(), exit: exit1.clone() },
-        CircuitPath { entry: entry2.clone(), mix: mix1.clone(), exit: exit2.clone() },
-    ];
+    let mut circuits = Vec::new();
+    for entry in &entries {
+        for mix in &mixes {
+            for exit in &exits {
+                circuits.push(CircuitPath {
+                    entry: entry.clone(),
+                    mix: mix.clone(),
+                    exit: exit.clone(),
+                });
+            }
+        }
+    }
+    println!(">> Configured {} relays ({} entries, {} mixes, {} exits) -> {} circuit combinations",
+        entries.len() + mixes.len() + exits.len(),
+        entries.len(), mixes.len(), exits.len(), circuits.len()
+    );
 
-    // Pre-create pool of 200 prototype packets to recycle/send at maximum throughput
-    let pool_size = if args.duration.is_some() { 200 } else { args.packets };
+    // Pre-create pool of prototype packets to recycle/send at maximum throughput
+    let pool_size = if args.duration.is_some() { circuits.len().max(256) } else { args.packets };
     println!(">> [1/4] Pre-synthesizing {} cryptographic Sphinx packets across circuits...", pool_size);
     let prep_start = Instant::now();
 
@@ -190,13 +210,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n>> [2/4] Initializing QUIC Transport Client & Identity Verification...");
     let transport = Arc::new(TransportClient::new(TransportConfig::default())?);
-    transport.add_expected_relay(entry1.addr, entry1.identity_pk).await;
-    transport.add_expected_relay(entry2.addr, entry2.identity_pk).await;
+    for entry in &entries {
+        transport.add_expected_relay(entry.addr, entry.identity_pk).await;
+    }
 
-    print!("   Warming up QUIC TLS 1.3 connections to entry nodes... ");
+    print!("   Warming up QUIC TLS 1.3 connections to all {} entry nodes... ", entries.len());
     let warm_pkt = &packets_by_entry[0].1;
-    transport.send_packet(entry1.addr, warm_pkt).await?;
-    transport.send_packet(entry2.addr, warm_pkt).await?;
+    for entry in &entries {
+        transport.send_packet(entry.addr, warm_pkt).await?;
+    }
     println!("OK (0-RTT TLS Handshake Verified)");
 
     // Group prototype packets into batches
@@ -260,7 +282,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     break;
                 }
                 let idx = next_idx.fetch_add(1, Ordering::Relaxed);
-                if !is_sustained_mode && idx >= (total_burst / 8).max(1) {
+                if !is_sustained_mode && idx >= num_batches {
                     break;
                 }
                 let batch_slot = idx % num_batches;
@@ -291,7 +313,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let total_pkts = args.packets;
 
     let progress_handle = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(1));
+        let interval_dur = if is_sustained_mode {
+            Duration::from_secs(1)
+        } else {
+            Duration::from_millis(100)
+        };
+        let mut interval = tokio::time::interval(interval_dur);
         let mut prev_count = 0usize;
         let mut sec_elapsed = 0u64;
 
@@ -303,13 +330,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         loop {
             interval.tick().await;
-            sec_elapsed += 1;
             let current = monitor_sent.load(Ordering::Relaxed);
-            let delta = current.saturating_sub(prev_count);
-            prev_count = current;
-            let current_mb_s = (delta * prism_sphinx::PACKET_SIZE) as f64 / 1_048_576.0;
 
             if is_sustained_mode {
+                sec_elapsed += 1;
+                let delta = current.saturating_sub(prev_count);
+                prev_count = current;
+                let current_mb_s = (delta * prism_sphinx::PACKET_SIZE) as f64 / 1_048_576.0;
+
                 println!("   │ {:>4}s  │ {:>8} pkts/s      │ {:>7.2} MB/s       │ {:>9} packets     │",
                     sec_elapsed, delta, current_mb_s, current
                 );
@@ -322,7 +350,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print!("\r   Progress: {:>5} / {} packets ({:.1}%) ...", current, total_pkts, pct.min(100.0));
                 std::io::Write::flush(&mut std::io::stdout()).ok();
                 if current >= total_pkts {
-                    monitor_running.store(false, Ordering::Relaxed);
                     break;
                 }
             }
@@ -332,11 +359,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let _ = progress_handle.await;
-    running.store(false, Ordering::Relaxed);
-
-    for h in worker_handles {
-        let _ = h.await;
+    if is_sustained_mode {
+        let _ = progress_handle.await;
+        running.store(false, Ordering::Relaxed);
+        for h in worker_handles {
+            let _ = h.await;
+        }
+    } else {
+        for h in worker_handles {
+            let _ = h.await;
+        }
+        running.store(false, Ordering::Relaxed);
+        progress_handle.abort();
     }
     let test_dur = test_start.elapsed();
 
