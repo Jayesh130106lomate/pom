@@ -8,7 +8,12 @@ description = "Comprehensive benchmark and stress testing suite for PRISM"
 name = "prism-benchmark"
 path = "src/main.rs"
 
+[[bin]]
+name = "pom-stress"
+path = "src/bin/pom_stress.rs"
+
 [dependencies]
+hex = { workspace = true }
 prism-crypto = { path = "../prism-crypto" }
 prism-sphinx = { path = "../prism-sphinx" }
 prism-mix = { path = "../prism-mix" }

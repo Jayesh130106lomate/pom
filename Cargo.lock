@@ -1129,6 +1129,7 @@ dependencies = [
  "clap",
  "criterion",
  "ed25519-dalek",
+ "hex",
  "hkdf",
  "hmac",
  "pqcrypto-kyber",

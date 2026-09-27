@@ -1,0 +1,7 @@
+FROM ubuntu:22.04
+
+# PRISM / POM Mix Relay Node
+COPY docker/bin/prism-node /usr/local/bin/prism-node
+RUN chmod +x /usr/local/bin/prism-node
+
+ENTRYPOINT ["/usr/local/bin/prism-node"]

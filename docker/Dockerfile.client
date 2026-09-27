@@ -1,0 +1,7 @@
+FROM ubuntu:22.04
+
+# PRISM / POM Mix Client
+COPY docker/bin/prism-client /usr/local/bin/prism-client
+RUN chmod +x /usr/local/bin/prism-client
+
+ENTRYPOINT ["/usr/local/bin/prism-client"]

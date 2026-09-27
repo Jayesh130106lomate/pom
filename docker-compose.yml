@@ -1,0 +1,165 @@
+name: pom-mixnet
+
+services:
+  # ==========================================
+  # Layer 1: Entry Relays (Ingress Gateways)
+  # ==========================================
+  entry-1:
+    image: pom-relay:latest
+    container_name: pom-entry-1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.11
+    ports:
+      - "9001:9001/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9001"
+      - "--layer"
+      - "1"
+      - "--key"
+      - "1"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+  entry-2:
+    image: pom-relay:latest
+    container_name: pom-entry-2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.12
+    ports:
+      - "9002:9002/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9002"
+      - "--layer"
+      - "1"
+      - "--key"
+      - "2"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+  # ==========================================
+  # Layer 2: Mix Relays (Poisson Anonymizers)
+  # ==========================================
+  mix-1:
+    image: pom-relay:latest
+    container_name: pom-mix-1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.21
+    ports:
+      - "9003:9003/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9003"
+      - "--layer"
+      - "2"
+      - "--key"
+      - "3"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+  mix-2:
+    image: pom-relay:latest
+    container_name: pom-mix-2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.22
+    ports:
+      - "9004:9004/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9004"
+      - "--layer"
+      - "2"
+      - "--key"
+      - "4"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+  # ==========================================
+  # Layer 3: Exit Relays (Egress Decryption)
+  # ==========================================
+  exit-1:
+    image: pom-relay:latest
+    container_name: pom-exit-1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.31
+    ports:
+      - "9005:9005/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9005"
+      - "--layer"
+      - "3"
+      - "--key"
+      - "5"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+  exit-2:
+    image: pom-relay:latest
+    container_name: pom-exit-2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.relay
+    networks:
+      pom-net:
+        ipv4_address: 172.28.0.32
+    ports:
+      - "9006:9006/udp"
+    command:
+      - "--listen"
+      - "0.0.0.0:9006"
+      - "--layer"
+      - "3"
+      - "--key"
+      - "6"
+      - "--mix-rate"
+      - "${MIX_RATE:-50.0}"
+      - "--pool-size"
+      - "${POOL_SIZE:-0}"
+    restart: unless-stopped
+
+networks:
+  pom-net:
+    name: pom-net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1

@@ -209,6 +209,18 @@ impl RelayProcessor {
         let notify_cover = self.pool_notify.clone();
         let cover_gen = self.cover_generator.clone();
         let cover_listen_addr = self.config.listen_addr;
+        let cover_target_addr = if cover_listen_addr.ip().is_unspecified() {
+            std::net::SocketAddr::new(
+                if cover_listen_addr.is_ipv6() {
+                    std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST)
+                } else {
+                    std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
+                },
+                cover_listen_addr.port(),
+            )
+        } else {
+            cover_listen_addr
+        };
         let cover_epoch = self.config.epoch_id;
         let my_pk = *X25519Public::from(&X25519Secret::from(self.relay_secret_key)).as_bytes();
 
@@ -220,7 +232,7 @@ impl RelayProcessor {
                 // Create a valid loop cover packet directed to self
                 let hop = RouteHop {
                     routing: RoutingInfo {
-                        next_hop: cover_listen_addr,
+                        next_hop: cover_target_addr,
                         delay_seed: 0,
                         flag: PacketFlag::LoopCover,
                         reserved: 0,
@@ -235,7 +247,7 @@ impl RelayProcessor {
                         let mut p = pool_cover.lock().await;
                         p.insert(
                             OutgoingPacket {
-                                next_hop: cover_listen_addr,
+                                next_hop: cover_target_addr,
                                 packet_bytes: bytes,
                             },
                             pool_delay,
@@ -354,7 +366,10 @@ impl RelayProcessor {
                         packet: next_packet,
                         ..
                     } => {
-                        if next_hop == self.config.listen_addr || next_hop.ip().is_unspecified() {
+                        let is_self = next_hop == self.config.listen_addr
+                            || next_hop.ip().is_unspecified()
+                            || (next_hop.ip().is_loopback() && (self.config.listen_addr.ip().is_unspecified() || self.config.listen_addr.ip().is_loopback()) && next_hop.port() == self.config.listen_addr.port());
+                        if is_self {
                             debug!("Loop cover completed round trip to originator");
                             self.state.packets_dropped.fetch_add(1, Ordering::Relaxed);
                         } else {

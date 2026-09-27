@@ -20,3 +20,4 @@ relay_keys.json
 *~
 .DS_Store
 .agents/
+docker/bin/

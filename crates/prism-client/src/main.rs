@@ -108,13 +108,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for s in parts {
                     let seed: u64 = s.parse().expect("Invalid seed integer");
                     let mut arr = [0u8; 32];
-                    let seed_val = seed * 8 + 64;
+                    let seed_val = seed.wrapping_mul(8).wrapping_add(64);
                     arr[0..8].copy_from_slice(&seed_val.to_le_bytes());
                     arr[8] = (seed & 0xFF) as u8;
-                    let secret = X25519Secret::from(arr);
+
+                    let sphinx_key_bytes = prism_crypto::kdf::hkdf_sha256(
+                        &arr,
+                        b"prism-key-separation",
+                        b"sphinx-x25519-v1",
+                        32,
+                    );
+                    let mut sphinx_key = [0u8; 32];
+                    sphinx_key.copy_from_slice(&sphinx_key_bytes);
+                    let secret = X25519Secret::from(sphinx_key);
                     p.push(*X25519Public::from(&secret).as_bytes());
 
-                    let dalek_sk = ed25519_dalek::SigningKey::from_bytes(&arr);
+                    let tls_seed_bytes = prism_crypto::kdf::hkdf_sha256(
+                        &arr,
+                        b"prism-key-separation",
+                        b"tls-ed25519-v1",
+                        32,
+                    );
+                    let mut tls_seed = [0u8; 32];
+                    tls_seed.copy_from_slice(&tls_seed_bytes);
+                    let dalek_sk = ed25519_dalek::SigningKey::from_bytes(&tls_seed);
                     ids.push(Some(dalek_sk.verifying_key().to_bytes()));
                 }
                 (p, ids)
