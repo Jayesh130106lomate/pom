@@ -1,7 +1,15 @@
 FROM ubuntu:22.04
 
+# Install iproute2 for tc netem, iputils-ping for diagnostics
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 \
+    iputils-ping \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # PRISM / POM Mix Relay Node
 COPY docker/bin/prism-node /usr/local/bin/prism-node
 RUN chmod +x /usr/local/bin/prism-node
 
 ENTRYPOINT ["/usr/local/bin/prism-node"]
+

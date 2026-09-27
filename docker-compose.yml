@@ -15,6 +15,8 @@ services:
         ipv4_address: 172.28.0.11
     ports:
       - "9001:9001/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9001", "--layer", "1", "--key", "1", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -29,6 +31,8 @@ services:
         ipv4_address: 172.28.0.12
     ports:
       - "9002:9002/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9002", "--layer", "1", "--key", "2", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -43,6 +47,8 @@ services:
         ipv4_address: 172.28.0.13
     ports:
       - "9003:9003/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9003", "--layer", "1", "--key", "3", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -57,6 +63,8 @@ services:
         ipv4_address: 172.28.0.14
     ports:
       - "9004:9004/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9004", "--layer", "1", "--key", "4", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -74,6 +82,8 @@ services:
         ipv4_address: 172.28.0.21
     ports:
       - "9005:9005/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9005", "--layer", "2", "--key", "5", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -88,6 +98,8 @@ services:
         ipv4_address: 172.28.0.22
     ports:
       - "9006:9006/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9006", "--layer", "2", "--key", "6", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -102,6 +114,8 @@ services:
         ipv4_address: 172.28.0.23
     ports:
       - "9007:9007/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9007", "--layer", "2", "--key", "7", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -116,6 +130,8 @@ services:
         ipv4_address: 172.28.0.24
     ports:
       - "9008:9008/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9008", "--layer", "2", "--key", "8", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -133,6 +149,8 @@ services:
         ipv4_address: 172.28.0.31
     ports:
       - "9009:9009/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9009", "--layer", "3", "--key", "9", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -147,6 +165,8 @@ services:
         ipv4_address: 172.28.0.32
     ports:
       - "9010:9010/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9010", "--layer", "3", "--key", "10", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -161,6 +181,8 @@ services:
         ipv4_address: 172.28.0.33
     ports:
       - "9011:9011/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9011", "--layer", "3", "--key", "11", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 
@@ -175,6 +197,8 @@ services:
         ipv4_address: 172.28.0.34
     ports:
       - "9012:9012/udp"
+    cap_add:
+      - NET_ADMIN
     command: ["--listen", "0.0.0.0:9012", "--layer", "3", "--key", "12", "--mix-rate", "${MIX_RATE:-50.0}", "--pool-size", "${POOL_SIZE:-0}"]
     restart: unless-stopped
 

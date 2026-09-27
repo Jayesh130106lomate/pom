@@ -10,6 +10,8 @@ pub struct NodeState {
     pub packets_forwarded: AtomicU64,
     /// Total packets dropped (cover traffic).
     pub packets_dropped: AtomicU64,
+    /// Total packets delivered at destination (exit node).
+    pub packets_delivered: AtomicU64,
     /// Total replays detected.
     pub replays_detected: AtomicU64,
     /// Total MAC failures.
@@ -24,6 +26,14 @@ pub struct NodeState {
     pub connections_rejected: AtomicU64,
     /// Currently active QUIC connections.
     pub active_connections: AtomicUsize,
+    /// Current MixPool queued items.
+    pub mix_pool_depth: AtomicUsize,
+    /// Highest observed MixPool depth.
+    pub mix_pool_high_water: AtomicUsize,
+    /// Items currently tracked in Bloom replay filter.
+    pub replay_filter_count: AtomicUsize,
+    /// Bloom replay filter estimated FPR in parts per million (e.g. 15 = 0.000015).
+    pub replay_filter_fpr_ppm: AtomicU64,
 }
 
 impl NodeState {
@@ -32,6 +42,7 @@ impl NodeState {
             packets_received: AtomicU64::new(0),
             packets_forwarded: AtomicU64::new(0),
             packets_dropped: AtomicU64::new(0),
+            packets_delivered: AtomicU64::new(0),
             replays_detected: AtomicU64::new(0),
             mac_failures: AtomicU64::new(0),
             packets_dropped_rate_limit: AtomicU64::new(0),
@@ -39,14 +50,19 @@ impl NodeState {
             pool_overflow_drops: AtomicU64::new(0),
             connections_rejected: AtomicU64::new(0),
             active_connections: AtomicUsize::new(0),
+            mix_pool_depth: AtomicUsize::new(0),
+            mix_pool_high_water: AtomicUsize::new(0),
+            replay_filter_count: AtomicUsize::new(0),
+            replay_filter_fpr_ppm: AtomicU64::new(0),
         }
     }
 
     pub fn report(&self) -> String {
         format!(
-            "received={} forwarded={} dropped={} replays={} mac_failures={} rate_limit_drops={} backpressure_drops={} pool_overflows={} conns_rejected={} active_conns={}",
+            "received={} forwarded={} delivered={} dropped={} replays={} mac_failures={} rate_limit_drops={} backpressure_drops={} pool_overflows={} conns_rejected={} active_conns={} pool_depth={} pool_max={} rf_count={}",
             self.packets_received.load(Ordering::Relaxed),
             self.packets_forwarded.load(Ordering::Relaxed),
+            self.packets_delivered.load(Ordering::Relaxed),
             self.packets_dropped.load(Ordering::Relaxed),
             self.replays_detected.load(Ordering::Relaxed),
             self.mac_failures.load(Ordering::Relaxed),
@@ -55,6 +71,9 @@ impl NodeState {
             self.pool_overflow_drops.load(Ordering::Relaxed),
             self.connections_rejected.load(Ordering::Relaxed),
             self.active_connections.load(Ordering::Relaxed),
+            self.mix_pool_depth.load(Ordering::Relaxed),
+            self.mix_pool_high_water.load(Ordering::Relaxed),
+            self.replay_filter_count.load(Ordering::Relaxed),
         )
     }
 }

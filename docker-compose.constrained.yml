@@ -1,0 +1,43 @@
+# Mode B (Resource-Constrained) Docker Compose Override
+# Enforces 0.50 CPU cores and 64 MiB hard memory limit per relay container
+name: pom-mixnet
+
+services:
+  entry-1:
+    cpus: '0.50'
+    mem_limit: 64m
+  entry-2:
+    cpus: '0.50'
+    mem_limit: 64m
+  entry-3:
+    cpus: '0.50'
+    mem_limit: 64m
+  entry-4:
+    cpus: '0.50'
+    mem_limit: 64m
+
+  mix-1:
+    cpus: '0.50'
+    mem_limit: 64m
+  mix-2:
+    cpus: '0.50'
+    mem_limit: 64m
+  mix-3:
+    cpus: '0.50'
+    mem_limit: 64m
+  mix-4:
+    cpus: '0.50'
+    mem_limit: 64m
+
+  exit-1:
+    cpus: '0.50'
+    mem_limit: 64m
+  exit-2:
+    cpus: '0.50'
+    mem_limit: 64m
+  exit-3:
+    cpus: '0.50'
+    mem_limit: 64m
+  exit-4:
+    cpus: '0.50'
+    mem_limit: 64m

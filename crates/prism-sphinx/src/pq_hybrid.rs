@@ -4,8 +4,6 @@
 //! key encapsulation. This construction eliminates the Harvest-Now-Decrypt-Later
 //! quantum vulnerability while preserving forward secrecy and mixnet layer unlinkability.
 
-use hmac::Hmac;
-use sha2::Sha256;
 use subtle::ConstantTimeEq;
 use chacha20::ChaCha20;
 use cipher::{KeyIvInit, StreamCipher};
@@ -21,8 +19,6 @@ use crate::payload::{
     encrypt_inner_payload, encrypt_payload_layer, pad_payload, unpad_payload,
 };
 use crate::routing::{PacketFlag, RoutingInfo};
-
-type HmacSha256 = Hmac<Sha256>;
 
 /// A route hop configured with a Post-Quantum Hybrid public key (X25519 + ML-KEM-768).
 #[derive(Clone)]

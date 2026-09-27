@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 use prism_mix::cover::CoverTrafficGenerator;
 use prism_mix::poisson::{AdaptivePoissonDelay, PoissonDelay};
@@ -113,6 +113,12 @@ impl RelayProcessor {
         self.mix_pool.clone()
     }
 
+    /// Get reference to internal ReplayFilter for telemetry inspection.
+    pub fn replay_filter(&self) -> Arc<Mutex<ReplayFilter>> {
+        self.replay_filter.clone()
+    }
+
+
     /// Process incoming packets from the receive channel.
     ///
     /// Core relay loop:
@@ -138,6 +144,7 @@ impl RelayProcessor {
         let client_drain = self.transport_client.clone();
         let state_drain = self.state.clone();
         let drain_batch_size = max_batch;
+        let drain_semaphore = Arc::new(tokio::sync::Semaphore::new(128));
 
         let drain_handle = tokio::spawn(async move {
             loop {
@@ -158,8 +165,14 @@ impl RelayProcessor {
                     for (target, pkts) in by_target {
                         let client = client_drain.clone();
                         let state = state_drain.clone();
+                        let sem = drain_semaphore.clone();
+                        let permit = match sem.acquire_owned().await {
+                            Ok(p) => p,
+                            Err(_) => break,
+                        };
                         let count = pkts.len();
                         tokio::spawn(async move {
+                            let _permit = permit;
                             let res = if count == 1 {
                                 client.send_packet(target, &pkts[0]).await
                             } else {
@@ -170,12 +183,13 @@ impl RelayProcessor {
                                     state.packets_forwarded.fetch_add(count as u64, Ordering::Relaxed);
                                 }
                                 Err(e) => {
-                                    error!("Failed to forward {} packets to {}: {}", count, target, e);
+                                    debug!("Failed to forward {} packets to {}: {}", count, target, e);
                                 }
                             }
                         });
                     }
                 }
+
 
                 // Check deadline of next mature packet or wait for notification
                 let sleep_dur = {
@@ -377,19 +391,14 @@ impl RelayProcessor {
                         }
                     }
                     ProcessedPacket::Destination { payload, .. } => {
+                        let delivered = self.state.packets_delivered.fetch_add(1, Ordering::Relaxed) + 1;
                         let msg_str = String::from_utf8_lossy(&payload);
                         info!(
-                            "Received message at destination ({} bytes): \"{}\"",
+                            "Received & decrypted payload at destination (#{}, {} bytes): \"{}\"",
+                            delivered,
                             payload.len(),
                             msg_str
                         );
-                        println!("\n╔════════════════════════════════════════════════════════════════════════╗");
-                        println!("║ [PRISM EXIT RELAY] Received & Decrypted Final Payload                 ║");
-                        println!("╠════════════════════════════════════════════════════════════════════════╣");
-                        println!("║ Payload Size   : {:<53} ║", format!("{} bytes", payload.len()));
-                        println!("║ Plaintext      : {:<53} ║", msg_str);
-                        println!("╚════════════════════════════════════════════════════════════════════════╝\n");
-                        self.state.packets_forwarded.fetch_add(1, Ordering::Relaxed);
                     }
                     ProcessedPacket::DropCover { .. } => {
                         debug!("Dropping cover traffic packet");
@@ -405,7 +414,9 @@ impl RelayProcessor {
                     let mut pool = self.mix_pool.lock().await;
                     for (i, (next_hop, packet_bytes)) in outgoing_items.into_iter().enumerate() {
                         let cur_depth = pool.len() + i;
-                        let delay = if let Some(ref adaptive) = self.adaptive_poisson {
+                        let delay = if self.config.layer == 1 {
+                            std::time::Duration::ZERO
+                        } else if let Some(ref adaptive) = self.adaptive_poisson {
                             adaptive.sample_smoothed(cur_depth)
                         } else {
                             self.poisson.sample()
@@ -605,7 +616,7 @@ mod tests {
 
         assert_eq!(state.packets_received.load(Ordering::Relaxed), 1);
         assert_eq!(state.mac_failures.load(Ordering::Relaxed), 0);
-        assert_eq!(state.packets_forwarded.load(Ordering::Relaxed), 1);
+        assert_eq!(state.packets_delivered.load(Ordering::Relaxed), 1);
 
         drop(tx);
         let _ = handle.await;
@@ -658,7 +669,7 @@ mod tests {
         tx.send((sender, wire_bytes.clone())).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        assert_eq!(state.packets_forwarded.load(Ordering::Relaxed), 1);
+        assert_eq!(state.packets_delivered.load(Ordering::Relaxed), 1);
         assert_eq!(state.replays_detected.load(Ordering::Relaxed), 0);
 
         // Send duplicate (replay)
@@ -667,7 +678,7 @@ mod tests {
 
         assert_eq!(state.replays_detected.load(Ordering::Relaxed), 1);
         assert_eq!(state.mac_failures.load(Ordering::Relaxed), 0);
-        assert_eq!(state.packets_forwarded.load(Ordering::Relaxed), 1);
+        assert_eq!(state.packets_delivered.load(Ordering::Relaxed), 1);
 
         drop(tx);
         let _ = handle.await;

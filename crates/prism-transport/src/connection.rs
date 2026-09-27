@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use quinn::{ClientConfig, Endpoint, ServerConfig};
+use quinn::{ClientConfig, Endpoint, ServerConfig, TransportConfig as QuinnTransportConfig, VarInt};
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tracing::{debug, info, warn};
 
@@ -216,10 +216,14 @@ impl TransportServer {
 
         server_crypto.alpn_protocols = vec![b"prism/1".to_vec()];
 
-        let server_config = ServerConfig::with_crypto(Arc::new(
+        let mut quic_transport = QuinnTransportConfig::default();
+        quic_transport.max_concurrent_uni_streams(VarInt::from_u32(2048));
+
+        let mut server_config = ServerConfig::with_crypto(Arc::new(
             quinn::crypto::rustls::QuicServerConfig::try_from(server_crypto)
                 .map_err(|e| TransportError::TlsError(format!("quic server config: {}", e)))?,
         ));
+        server_config.transport_config(Arc::new(quic_transport));
 
         let endpoint = Endpoint::server(server_config, config.bind_addr)
             .map_err(|e| TransportError::BindFailed(format!("{}", e)))?;
@@ -604,10 +608,14 @@ impl TransportClient {
 
         client_crypto.alpn_protocols = vec![b"prism/1".to_vec()];
 
-        let client_config = ClientConfig::new(Arc::new(
+        let mut quic_transport = QuinnTransportConfig::default();
+        quic_transport.max_concurrent_uni_streams(VarInt::from_u32(2048));
+
+        let mut client_config = ClientConfig::new(Arc::new(
             quinn::crypto::rustls::QuicClientConfig::try_from(client_crypto)
                 .map_err(|e| TransportError::TlsError(format!("quic client config: {}", e)))?,
         ));
+        client_config.transport_config(Arc::new(quic_transport));
 
         let mut endpoint = Endpoint::client(config.bind_addr)
             .map_err(|e| TransportError::BindFailed(format!("{}", e)))?;
