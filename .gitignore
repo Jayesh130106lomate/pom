@@ -1,0 +1,22 @@
+# Rust build artifacts
+target/
+/tmp/cargo_target/
+Cargo.lock.backup
+*.rs.bk
+
+# Sensitive relay keys & runtime credentials
+*.pem
+*.key
+relay_keys.json
+
+# Logs
+*.log
+
+# Editor & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.agents/

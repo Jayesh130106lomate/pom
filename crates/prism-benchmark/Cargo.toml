@@ -1,0 +1,40 @@
+[package]
+name = "prism-benchmark"
+version.workspace = true
+edition.workspace = true
+description = "Comprehensive benchmark and stress testing suite for PRISM"
+
+[[bin]]
+name = "prism-benchmark"
+path = "src/main.rs"
+
+[dependencies]
+prism-crypto = { path = "../prism-crypto" }
+prism-sphinx = { path = "../prism-sphinx" }
+prism-mix = { path = "../prism-mix" }
+prism-transport = { path = "../prism-transport" }
+prism-directory = { path = "../prism-directory" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+x25519-dalek = { workspace = true }
+chacha20 = { workspace = true }
+cipher = { workspace = true }
+chacha20poly1305 = { workspace = true }
+aes-gcm = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+hkdf = { workspace = true }
+pqcrypto-kyber = { workspace = true }
+pqcrypto-traits = { workspace = true }
+ed25519-dalek = { workspace = true }
+quinn = { workspace = true }
+rcgen = { workspace = true }
+rustls = { workspace = true }
+criterion = { workspace = true }
+rayon = { workspace = true }

@@ -1,0 +1,27 @@
+[package]
+name = "prism-node"
+version.workspace = true
+edition.workspace = true
+description = "PRISM relay node daemon"
+
+[[bin]]
+name = "prism-node"
+path = "src/main.rs"
+
+[dependencies]
+prism-crypto = { path = "../prism-crypto" }
+prism-sphinx = { path = "../prism-sphinx" }
+prism-mix = { path = "../prism-mix" }
+prism-transport = { path = "../prism-transport" }
+prism-directory = { path = "../prism-directory" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }
+x25519-dalek = { workspace = true }
+rayon = { workspace = true }

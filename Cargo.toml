@@ -1,0 +1,72 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/prism-crypto",
+    "crates/prism-sphinx",
+    "crates/prism-mix",
+    "crates/prism-transport",
+    "crates/prism-directory",
+    "crates/prism-node",
+    "crates/prism-client",
+    "crates/prism-benchmark",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "PRISM — Privacy through Robust Internet-Scale Mixing"
+
+[workspace.dependencies]
+# Cryptographic primitives
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+chacha20 = "0.9"
+cipher = "0.4"
+chacha20poly1305 = "0.10"
+aes-gcm = "0.10"
+hkdf = "0.12"
+hmac = "0.12"
+sha2 = "0.10"
+
+# Post-quantum
+pqcrypto-kyber = "0.8"
+pqcrypto-traits = "0.3"
+
+# Randomness and security
+rand = "0.8"
+rand_distr = "0.4"
+zeroize = { version = "1", features = ["derive"] }
+subtle = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Networking
+quinn = "0.11"
+rustls = { version = "0.23", features = ["ring"] }
+rcgen = "0.13"
+
+# Utilities
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+clap = { version = "4", features = ["derive"] }
+hex = "0.4"
+base32 = "0.5"
+bytes = "1"
+
+# Testing
+criterion = "0.5"
+rayon = "1.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[profile.bench]
+opt-level = 3

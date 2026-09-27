@@ -1,0 +1,28 @@
+[package]
+name = "prism-client"
+version.workspace = true
+edition.workspace = true
+description = "PRISM client CLI"
+
+[[bin]]
+name = "prism-client"
+path = "src/main.rs"
+
+[dependencies]
+prism-crypto = { path = "../prism-crypto" }
+prism-sphinx = { path = "../prism-sphinx" }
+prism-mix = { path = "../prism-mix" }
+prism-transport = { path = "../prism-transport" }
+prism-directory = { path = "../prism-directory" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }
+x25519-dalek = { workspace = true }
+ed25519-dalek = { workspace = true }
+

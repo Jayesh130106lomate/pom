@@ -1,0 +1,15 @@
+[package]
+name = "prism-directory"
+version.workspace = true
+edition.workspace = true
+description = "Directory management for PRISM"
+
+[dependencies]
+prism-crypto = { path = "../prism-crypto" }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]

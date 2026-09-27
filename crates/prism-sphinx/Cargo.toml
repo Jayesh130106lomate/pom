@@ -1,0 +1,23 @@
+[package]
+name = "prism-sphinx"
+version.workspace = true
+edition.workspace = true
+description = "Sphinx packet format for PRISM"
+
+[dependencies]
+prism-crypto = { path = "../prism-crypto" }
+rand = { workspace = true }
+zeroize = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hkdf = { workspace = true }
+chacha20 = { workspace = true }
+cipher = { workspace = true }
+chacha20poly1305 = { workspace = true }
+subtle = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true }
